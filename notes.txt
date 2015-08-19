@@ -11,12 +11,6 @@ Criticals
     This is an unsafe design. A beefier LM317 or a different regulator is
     necessary if the LEDs are driven off of the regulator's output.
 
-3.  The forward voltage of those LEDs is pretty high - 3.15V worst-case.
-    It's a stretch trying to drive them off of a 3.3V rail without
-    current-control ICs. I would recommend switching to an LED family
-    with a lower forward voltage or driving the LEDs directly off of the
-    12V input rail and tweaking the row drivers accordingly.
-
 4.  C3 (the 12V rail's bulk capacitance) is severely underrated. a 16V part
     isn't enough margin to be safe, and the 1uF capacitor is a little weak
     against an input voltage from an unknown source. I would recommend a
@@ -30,31 +24,39 @@ Warnings
    Depending on some particulars of the schematic capture tool used, that
    might even unlink J1's ground pin from the actual GND net.
 
-3. As currently designed, the LM317L will get pretty hot. Even if the LEDs
+2. As currently designed, the LM317L will get pretty hot. Even if the LEDs
    were correctly current-limited, you'd be looking at 870mW being dissipated
-   by the LM317 if all of the LEDs are on and the MCU is going at full power.
+   by the LM317 if all of the LEDs were on and the MCU was going at full power.
    That much heat probably won't push the chip past is thermal limits, but
-   the chip will get hot enough to soften plastic or burn you if you touch it.
-   I would recommend running the LEDs directly off of the 12V rail, using a
-   switching regulator, or using an LDO in a package with better thermal
-   dissipation.
+   the chip will get hot enough to soften some plastics or burn you if you
+   touch it. I would recommend running the LEDs directly off of the 12V rail,
+   using a switching regulator, or using an LDO in a package with better
+   thermal dissipation.
 
-2. There is no protection on the I2C lines. If this is an internal component
-   in a larger system, that might be fine. If this is a customer-facing port,
-   the I2C lines really should have ESD protection (maybe a TVS on each line)
-   and also current-limiting resistors or resettable fuses.
-
-3. There should probably be pullup resistors on the I2C lines, even if the
-   device is intended to be an I2C slave. Adding 100k pullups to 3.3V will
-   ensure that they don't float if the I2C master is disconnected.
-
-4. Without constant-current drivers, the LED brightness isn't going to be
+3. Without constant-current drivers, the LED brightness isn't going to be
    very precise. Consider replacing either the row or the column transistors
    with constant current sources if the consistency and accuracy of the
    brightness matters.
 
+4. The forward voltage of those LEDs is pretty high - 3.15V worst-case. When
+   driven by a 3.3V rail, the forward-voltage range of [2.65V to 3.15V] is
+   going to make a pretty huge difference in brightness. Without constant-
+   current drivers, the LEDs should either be binned to have consistent
+   forward voltage, or VCC should be raised so that the forward voltage
+   has less impact on the drive current.
+
+5. There is no protection on the I2C lines. If this is an internal component
+   in a larger system, that might be fine. If this is a customer-facing port,
+   the I2C lines really should have ESD protection (maybe a TVS on each line)
+   and also current-limiting resistors or resettable fuses.
+
+6. If the I2C port is customer-facing, there should also be weak pullup
+   resistors at a minimum, or maybe strong pullups depending on how the
+   device is intended to be used. Adding 100k pullups will ensure that the
+   the system is well-behaved in the event of a broken/absent connection.
+
 Recommendations
-----------------
+---------------
 
 1. Bypass caps C1 and C2 are beefier than needed. If this product is intended
    to be large enough volume, consider dropping down to 10V 0.1uF caps.
@@ -64,42 +66,45 @@ Recommendations
    -type module, but USB or RS-232 should be considered if the product is
    intended to be used by non-engineers.
 
-3. The choice of a DB-9 connector means that somebody's probably going to
+3. If the product is designed to be an I2C slave, it would be smart to include
+   provisions for setting the I2C address without having to reprogram the MCU.
+   Maybe add some slide switches or jumpers (or at least resistor pads) and
+   connect them to some unused MCU pins. Then the device firmware can check the
+   state of the pins and pick an I2C address.
+
+4. The choice of a DB-9 connector means that somebody's probably going to
    try to plug it into an RS-232 device at some point. As currently designed,
    I would expect that to fry the SCL line. Consider picking a different
    connector.
 
-4. With 4 lines each for the LED row and column selects, there are 8 total
+5. With 4 lines each for the LED row and column selects, there are 8 total
    LED control signals. That's a nice round number, and all of the pins should
    be put on a single MCU port, instead of having col<4> on port B and all of
    the rest on port A. Keeping all of the pins on a single GPIO port ensures
    that you can change them all with a single atomic operation. That avoids
    accidental states in-between the update of port A and port B.
 
-5. At the expense of some power efficiency, you could lower the product's costs
-   (both BOM and assembly) by replacing all of the MOSFETs with NPN BJTs,
-   which come in array packages. The circuit would work pretty much the same
-   way, except that the LEDs would be inverted because the row-driver polarity
-   would change. This would need to be accompanied by running the LEDs off of
-   the 12V rail in order to make up for the VCE loss across the transistors.
+6. You could lower the product's costs (both BOM and assembly) by replacing all
+   of the MOSFETs with MOSFET arrays. Replacing all of the MOSFETs with
+   DMC2038LVT-7 arrays would save 11 cents per unit in BOM cost, and probably
+   another few cents in manufacturing costs due to the lower part count and
+   the elimination of a line item on the BOM.
 
-6. A 32-bit ARM MCU might be overkill for this particular product. You could
-   shave a dollar off the BOM cost by using a cheaper MCU like an MSP430 or an
-   ATTINY.
+7. The current-limiting resistors on the MOSFET gates are probably unnecessary.
+   Chances are they could be removed with no effect on product reliability.
 
-7. You could replace U2, R9, and R10 with a single fixed-voltage LDO. It would
+8. A 32-bit ARM MCU might be overkill for this particular product. You could
+   shave a dollar or more off the BOM cost by using a cheaper MCU like an
+   MSP430, a PIC, or an AT-tiny.
+
+9. You could replace U2, R9, and R10 with a single fixed-voltage LDO. It would
    save board space and assembly costs, and might wind up having a lower BOM
    cost as well.
 
-8. It's good practice to include a high-frequency bypass cap in parallel with
-   C4 (the LDO's output capacitor). Since you already have 0.1uF bypass caps
-   in the design (intended for placement near to the MCU's VDD and Vref pins),
-   adding another one next to C4 is very cheap.
-
-9. If this is a standalone commercial product, I would recommend some
-   overcurrent and reverse voltage protection on the input voltage rail.
-   A PTC resettable fuse on the 12V input and a 16V Zener between the
-   post-fuse input and GND would probably do the trick.
+10. It's good practice to include a high-frequency bypass cap in parallel with
+    C4 (the LDO's output capacitor). Since you already have 0.1uF bypass caps
+    in the design (presumably intended for placement near to the MCU's VDD and
+    Vref pins), adding another one next to C4 is very cheap.
 
 Suggestions (Stylistic)
 -----------------------
@@ -110,11 +115,14 @@ Suggestions (Stylistic)
 
 2. All of those 'D1' reference designators on the ground connections are
    probably unnecessary, and can be perceived as cluttering up the schematic.
+   Consider removing the designators from the GND symbols.
 
-3. J1 could be made clearer by using a single schematic symbol instead of
-   one for each pin.
+3. Connector J1 could be made clearer on the schematic by using a single
+   schematic symbol instead of one for each pin.
 
-4. The polarity of the DB-9 isn't called out. Is it male? Female?
+4. The polarity of the DB-9 isn't called out. Is it male? Female? One would
+   generally want to call this out on the schematic. If the component is
+   to be an I2C slave
 
 5. The column-select pins are numbered col<1> to col<4> instead of the
    more common col<0> to col<3> syntax. These should be re-enumerated to

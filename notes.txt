@@ -1,23 +1,33 @@
+Criticals
+---------
 
-1. The power pins for U1 don't have a visible schematic symbol. If they
-   really need to be on a separate symbol from the rest of U1, the symbol
-   should have some kind of outline.
+1.  The LM317L has a 100mA output current limit. That's not enough for the MCU
+    and all of the LEDs to be on simultaneously, even assuming the LEDs get
+	properly limited to their 5mA rated current. A beefier LM317 or a different
+	regulator is necessary.
 
-2. Bypass caps C1 and C2 are a bit oversized. If this product is intended
-   to be large enough volume, consider dropping down to 10V caps to lower
-   the price.
+2.  There are no current-limiting components on any of the LEDs. Considering
+    that they're rated for 5mA, they would blow pretty much instantly as
+    soon as you powered the system up.
 
-3. All of those 'D1' reference designators on the ground connections are
-   probably unnecessary, and can be perceived as cluttering up the schematic.
+3.  The forward voltage of those LEDs is pretty high - 3.15V worst-case.
+    It's a stretch trying to drive them off of a 3.3V rail without
+    current-control ICs. I would recommend switching to an LED family
+    with a lower forward voltage or driving the LEDs directly off of the
+    12V input rail (with an NMOS level-shifter stage before the PMOS row
+    drivers).
 
-4. The refdes for the ground pin on J1 is 'A1'. That's probably accidental.
+4.  C3 (the 12V rail's bulk capacitance) is severely underrated. a 16V part
+    isn't enough margin to be safe, and the 1uF capacitor is a little weak. I
+	would recommend 22uF minimum, rated for 24V.
+
+Warnings
+--------
+
+1. The refdes for the ground pin on J1 is 'A1'. That's probably accidental,
+   considering that all the other ground symbols have a refdes of 'D1'.
    Depending on some particulars of the schematic capture tool used, that
    might even unlink J1's ground pin from the actual GND net.
-
-5. J1 could be made clearer by using a single schematic symbol instead of
-   one for each pin.
-
-6. The polarity of the DB-9 isn't called out. Is it male? Female?
 
 7. There is no protection on the I2C lines. If this is an internal component
    in a larger system, that might be fine. If this is a customer-facing port,
@@ -27,6 +37,16 @@
 8. There should probably be pullup resistors on the I2C lines, even if the
    device is intended to the an I2C slave.
 
+12. Without constant-current drivers, the LED brightness isn't going to be
+    very precise.
+
+Suggestions
+-----------
+
+2. Bypass caps C1 and C2 are beefier than needed. If this product is intended
+   to be large enough volume, consider dropping down to 10V caps to lower
+   the price.
+   
 9. I2C is an uncommon choice for the communications protocol if this is
    a standalone product. It's OK if this is intended to be a Sparkfun/Adafruit
    -type module, but USB or RS-232 should be considered if the product is
@@ -44,23 +64,6 @@
     that you can change them all with a single atomic operation. That avoids
     accidental states in-between the update of port A and port B.
 
-12. Without constant-current drivers, the LED brightness isn't going to be
-    very precise.
-
-13. There are no current-limiting components on any of the LEDs. Considering
-    that they're rated for 5mA, they would blow pretty much instantly as
-    soon as you powered the system up.
-
-14. The column-select pins are numbered col<1> to col<4> instead of the
-    more common col<0> to col<3> syntax.
-
-15. The forward voltage of those LEDs is pretty high - 3.15V worst-case.
-    It's a stretch trying to drive them off of a 3.3V rail without
-    current-control ICs. I would recommend switching to an LED family
-    with a lower forward voltage or driving the LEDs directly off of the
-    12V input rail (with an NMOS level-shifter stage before the PMOS row
-    drivers).
-
 16. At the expense of some power efficiency, you could lower your the product's
     costs (both BOM and assembly) by replacing all of the MOSFETs with NPN BJTs,
     which come in array packages. The circuit would work pretty much the same
@@ -71,10 +74,6 @@
 17. A 32-bit ARM MCU might be a bit much for this particular product. You could
     shave a dollar or so off by using a cheaper MCU like an MSP430 or an ATTINY.
 
-18. C3 (the 12V rail's bulk capacitance) is severely underrated. a 16V part isn't
-    enough margin to be safe, and the 1uF capacitor is a little weak. I would
-    recommend 22uF minimum, rated for 24V.
-
 19. You could replace U2, R9, and R10 with a single fixed-voltage LDO. It would
     save board space and assembly costs, and might wind up having a lower BOM
     cost as well.
@@ -84,4 +83,24 @@
     in the design (intended for placement near to the MCU's VDD and Vref pins),
     adding another one next to C4 is very cheap.
 
+Suggestions (Stylistic)
+-----------------------
 
+1. The power pins for U1 don't have a visible schematic symbol. If they
+   really need to be on a separate symbol from the rest of U1, the symbol
+   should have some kind of outline.
+
+3. All of those 'D1' reference designators on the ground connections are
+   probably unnecessary, and can be perceived as cluttering up the schematic.
+
+5. J1 could be made clearer by using a single schematic symbol instead of
+   one for each pin.
+
+6. The polarity of the DB-9 isn't called out. Is it male? Female?
+
+14. The column-select pins are numbered col<1> to col<4> instead of the
+    more common col<0> to col<3> syntax.
+
+9. A C-size schematic is awfully large, and doesn't print nicely. Consider
+   using B-size instead, because it can be printed in its native size by
+   most printers. 

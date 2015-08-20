@@ -1,70 +1,72 @@
-Criticals
----------
+# Introduction #
 
-1.  There are no current-limiting components on any of the LEDs. Considering
-    that they're rated for 5mA, they would be torched pretty much instantly as
-    soon as you turned on the LEDs.
+This document is a design review of QSC's I2C-programmable 4x4 LED matrix.
 
-2.  The LM317L is rated for a 100mA maximum output current. If all of the
-    LEDs are on (and have been current-limited to 5mA) and the MCU is going at
-    full speed, the LDO will be right at the limits of this rated maximum.
-    This is an unsafe design. A beefier LM317 or a different regulator is
-    necessary if the LEDs are driven off of the regulator's output.
+# Criticals #
 
-4.  C3 (the 12V rail's bulk capacitance) is severely underrated. a 16V part
-    isn't enough margin to be safe, and the 1uF capacitor is a little weak
-    against an input voltage from an unknown source. I would recommend a
-    10uF/24V capacitor.
+1. There are no current-limiting components on any of the LEDs. Considering
+   that they're rated for 5mA, they would be torched pretty much instantly as
+   soon as you turned on the LEDs.
 
-Warnings
---------
+2. The LM317L is rated for a 100mA maximum output current. If all of the
+   LEDs are on (and have been current-limited to 5mA) and the MCU is going at
+   full speed, the LDO will be right at the limits of this rated maximum.
+   This is an unsafe design. A beefier LM317 or a different regulator is
+   necessary if the LEDs are to be driven off of the regulator's output.
 
-1. The refdes for the ground pin on J1 is 'A1'. That's probably accidental,
+# Warnings #
+
+1. C3 (the 12V rail's bulk capacitance) doesn't have a high enough voltage
+   rating. A 16V part isn't enough margin to be safe, and the 1uF capacitor
+   is a little weak against an input voltage from an unknown source. I
+   would recommend a 10uF/24V capacitor.
+
+2. The refdes for the ground pin on J1 is 'A1'. That's probably accidental,
    considering that all the other ground symbols have a refdes of 'D1'.
    Depending on some particulars of the schematic capture tool used, that
    might even unlink J1's ground pin from the actual GND net.
 
-2. As currently designed, the LM317L will get pretty hot. Even if the LEDs
+3. As currently designed, the LM317L will get pretty hot. Even if the LEDs
    were correctly current-limited, you'd be looking at 870mW being dissipated
    by the LM317 if all of the LEDs were on and the MCU was going at full power.
-   That much heat probably won't push the chip past is thermal limits, but
+   That much heat probably won't push the chip past its thermal limits, but
    the chip will get hot enough to soften some plastics or burn you if you
    touch it. I would recommend running the LEDs directly off of the 12V rail,
    using a switching regulator, or using an LDO in a package with better
    thermal dissipation.
 
-3. Without constant-current drivers, the LED brightness isn't going to be
+4. Without constant-current drivers, the LED brightness isn't going to be
    very precise. Consider replacing either the row or the column transistors
-   with constant current sources if the consistency and accuracy of the
-   brightness matters.
+   with 1-to-N constant current sources (or sinks, respectively) if the
+   consistency and accuracy of the brightness matters.
 
-4. The forward voltage of those LEDs is pretty high - 3.15V worst-case. When
+5. The forward voltage of those LEDs is pretty high - 3.15V worst-case. When
    driven by a 3.3V rail, the forward-voltage range of [2.65V to 3.15V] is
-   going to make a pretty huge difference in brightness. Without constant-
-   current drivers, the LEDs should either be binned to have consistent
-   forward voltage, or VCC should be raised so that the forward voltage
-   has less impact on the drive current.
+   going to make a pretty huge difference in brightness. Without constant-current
+   drivers, the LEDs should either be screened for a consistent forward voltage,
+   or VCC should be raised so that the forward voltage has less impact on the
+   drive current.
 
-5. There is no protection on the I2C lines. If this is an internal component
+6. There is no protection on the I2C lines. If this is an internal component
    in a larger system, that might be fine. If this is a customer-facing port,
    the I2C lines really should have ESD protection (maybe a TVS on each line)
    and also current-limiting resistors or resettable fuses.
 
-6. If the I2C port is customer-facing, there should also be weak pullup
-   resistors at a minimum, or maybe strong pullups depending on how the
-   device is intended to be used. Adding 100k pullups will ensure that the
-   the system is well-behaved in the event of a broken/absent connection.
+7. The I2C lines are missing pullup resistors. Even if the 'real' pullups are
+   intended to be off-board, adding 100k pullups will ensure that the
+   system is well-behaved in the event of a broken/absent connection. If the
+   pullups are intended to be local to the board, 4.7k might be more
+   appropriate.
 
-Recommendations
----------------
+# Recommendations #
 
-1. Bypass caps C1 and C2 are beefier than needed. If this product is intended
-   to be large enough volume, consider dropping down to 10V 0.1uF caps.
+1. A 16V voltage rating is overkill for 3.3V bypass caps. You could shave off
+   a few cents by dropping C1 and C2 down to a 10V voltage rating.
    
 2. I2C is an uncommon choice for the communications protocol if this is
-   a standalone product. It's OK if this is intended to be a Sparkfun/Adafruit
-   -type module, but USB or RS-232 should be considered if the product is
-   intended to be used by non-engineers.
+   a standalone product. It's OK if this is intended to be a
+   Sparkfun/Adafruit-type module, but USB or RS-232 should be considered if
+   the product is intended to be used by non-engineers.
 
 3. If the product is designed to be an I2C slave, it would be smart to include
    provisions for setting the I2C address without having to reprogram the MCU.
@@ -72,10 +74,11 @@ Recommendations
    connect them to some unused MCU pins. Then the device firmware can check the
    state of the pins and pick an I2C address.
 
-4. The choice of a DB-9 connector means that somebody's probably going to
-   try to plug it into an RS-232 device at some point. As currently designed,
-   I would expect that to fry the SCL line. Consider picking a different
-   connector.
+4. The choice of a DB-9 connector for J1 means that somebody's probably going to
+   try to talk to your device with RS-232 at some point. That action could
+   fry the SCL line. Consider picking a different connector. If DB-9 is a
+   requirement, consider swapping around the pins to make an accidental hookup
+   survivable.
 
 5. With 4 lines each for the LED row and column selects, there are 8 total
    LED control signals. That's a nice round number, and all of the pins should
@@ -90,24 +93,24 @@ Recommendations
    another few cents in manufacturing costs due to the lower part count and
    the elimination of a line item on the BOM.
 
-7. The current-limiting resistors on the MOSFET gates are probably unnecessary.
-   Chances are they could be removed with no effect on product reliability.
+7. The current-limiting resistors on the MOSFET gates are probably unnecessary
+   with such small MOSFETs. Chances are they could be removed with no impact
+   on product reliability.
 
 8. A 32-bit ARM MCU might be overkill for this particular product. You could
-   shave a dollar or more off the BOM cost by using a cheaper MCU like an
+   shave a dollar or more off the BOM cost by using a cheaper MCU such as an
    MSP430, a PIC, or an AT-tiny.
 
-9. You could replace U2, R9, and R10 with a single fixed-voltage LDO. It would
-   save board space and assembly costs, and might wind up having a lower BOM
-   cost as well.
+9. You could replace U2, R9, and R10 with a fixed-voltage LDO. It would save
+   board space and assembly costs, and might wind up having a lower BOM cost
+   as well.
 
 10. It's good practice to include a high-frequency bypass cap in parallel with
     C4 (the LDO's output capacitor). Since you already have 0.1uF bypass caps
     in the design (presumably intended for placement near to the MCU's VDD and
     Vref pins), adding another one next to C4 is very cheap.
 
-Suggestions (Stylistic)
------------------------
+# Suggestions (Stylistic) #
 
 1. The power pins for U1 don't have a visible schematic symbol. If they
    really need to be on a separate symbol from the rest of U1, the symbol
@@ -120,21 +123,20 @@ Suggestions (Stylistic)
 3. Connector J1 could be made clearer on the schematic by using a single
    schematic symbol instead of one for each pin.
 
-4. The polarity of the DB-9 isn't called out. Is it male? Female? One would
-   generally want to call this out on the schematic. If the component is
-   to be an I2C slave
+4. The polarity of the D-sub connector isn't called out. Is it male? Female?
+   One would generally want to call this out on the schematic.
 
 5. The column-select pins are numbered col<1> to col<4> instead of the
    more common col<0> to col<3> syntax. These should be re-enumerated to
    match the row bus in being <0> to <3> syntax.
 
 6. A C-size schematic is awfully large, and doesn't print nicely. Consider
-   using B-size instead, because it can be printed in its native size by
-   most printers.
+   redrafting the schematic on B-size instead, because it can be printed
+   at 1:1 scale by most printers.
 
 7. The schematic symbol for U1 is hard to read. The labels of pins 16 and 30
    overlap each other, and the labels for pins 24-26 and 29-31 stick out into
    the side of the schematic symbol. Consider reworking this symbol.
 
 8. The refdes and component values for Q2-Q4 overlap each other, making them
-   hard to read. Consider nudging one or the other.
+   hard to read. Consider moving one or the other.

@@ -1,0 +1,13 @@
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+
+\fancypagestyle{plain}{%
+\fancyhf{} % clear all header and footer fields
+\fancyhead[L]{\docTitle} % except the center
+\fancyfoot[R]{\textit{Page \thepage\ of \pageref{LastPage}}} % except the center
+\fancyfoot[L]{\textit{By Nicholas Clark  (nicholas.clark@gmail.com)}} % except the center
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}}
+
+\pagestyle{plain}
